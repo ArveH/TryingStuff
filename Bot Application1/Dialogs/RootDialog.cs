@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
@@ -15,20 +16,32 @@ namespace Bot_Application1.Dialogs
             return Task.CompletedTask;
         }
 
-        private Task MessageReceivedAsync(IDialogContext context, IAwaitable<object> result)
+        private async Task MessageReceivedAsync(IDialogContext context, IAwaitable<object> result)
         {
-            context.Call<UserProfile>(new EnsureProfileDialog(), ProfileEnsured);
-
-            return Task.CompletedTask;
+            var msg = await result as IMessageActivity;
+            if (msg.Text.Equals(@"search", StringComparison.OrdinalIgnoreCase))
+            {
+                PromptDialog.Text(context, QueryEntered, @"Who do you want to serach for?");
+            }
+            else if (msg.Text.StartsWith(@"search ", StringComparison.OrdinalIgnoreCase))
+            {
+                var query = msg.Text.Substring(7);
+                await context.Forward<string, string>(new SearchDialog(), SearchComplete, query,
+                    default(CancellationToken));
+            }
         }
 
-        private async Task ProfileEnsured(IDialogContext context, IAwaitable<UserProfile> result)
+        private async Task QueryEntered(IDialogContext context, IAwaitable<string> result)
         {
-            var profile = await result;
+            await context.Forward<string, string>(new SearchDialog(), SearchComplete, await result,
+                default(CancellationToken));
+        }
 
-            context.UserData.SetValue(@"profile", profile);
+        private async Task SearchComplete(IDialogContext context, IAwaitable<string> result)
+        {
+            var msg = await result;
 
-            await context.PostAsync($@"Hello {profile.Name}, I love {profile.Company}!");
+            await context.PostAsync(msg);
 
             context.Wait(MessageReceivedAsync);
         }
