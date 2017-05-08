@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder.Dialogs;
@@ -41,7 +42,27 @@ namespace Bot_Application1.Dialogs
         {
             var msg = await result;
 
-            await context.PostAsync(msg);
+            var profile = await new GitHubClient().LoadProfile(await result);
+
+            var thumbnail = new ThumbnailCard();
+            thumbnail.Title = profile.Login;
+            thumbnail.Images = new[] {new CardImage(profile.AvatarUrl)};
+
+            if (!string.IsNullOrWhiteSpace(profile.Name)) thumbnail.Subtitle = profile.Name;
+
+            string text = string.Empty;
+            if (!string.IsNullOrWhiteSpace(profile.Company)) text += profile.Name + Environment.NewLine;
+            if (!string.IsNullOrWhiteSpace(profile.Email)) text += profile.Email + Environment.NewLine;
+            if (!string.IsNullOrWhiteSpace(profile.Bio)) text += profile.Bio;
+            thumbnail.Text = text;
+
+            thumbnail.Buttons = new[] {new CardAction(ActionTypes.OpenUrl, @"Click to view", 
+                value: profile.HtmlUrl)};
+
+            var reply = context.MakeMessage();
+            reply.Attachments.Add(thumbnail.ToAttachment());
+
+            await context.PostAsync(reply);
 
             context.Wait(MessageReceivedAsync);
         }
