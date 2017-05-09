@@ -38,33 +38,11 @@ namespace Bot_Application1.Dialogs
                 default(CancellationToken));
         }
 
-        private async Task SearchComplete(IDialogContext context, IAwaitable<string> result)
+        private Task SearchComplete(IDialogContext context, IAwaitable<string> result)
         {
-            var msg = await result;
-
-            var profile = await new GitHubClient().LoadProfile(await result);
-
-            var thumbnail = new ThumbnailCard();
-            thumbnail.Title = profile.Login;
-            thumbnail.Images = new[] {new CardImage(profile.AvatarUrl)};
-
-            if (!string.IsNullOrWhiteSpace(profile.Name)) thumbnail.Subtitle = profile.Name;
-
-            string text = string.Empty;
-            if (!string.IsNullOrWhiteSpace(profile.Company)) text += profile.Name + Environment.NewLine;
-            if (!string.IsNullOrWhiteSpace(profile.Email)) text += profile.Email + Environment.NewLine;
-            if (!string.IsNullOrWhiteSpace(profile.Bio)) text += profile.Bio;
-            thumbnail.Text = text;
-
-            thumbnail.Buttons = new[] {new CardAction(ActionTypes.OpenUrl, @"Click to view", 
-                value: profile.HtmlUrl)};
-
-            var reply = context.MakeMessage();
-            reply.Attachments.Add(thumbnail.ToAttachment());
-
-            await context.PostAsync(reply);
-
             context.Wait(MessageReceivedAsync);
+
+            return Task.CompletedTask;
         }
     }
 }
